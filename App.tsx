@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
-import Header from './components/Header';
-import Quiz from './components/Quiz';
-import FunFacts from './components/FunFacts';
-import Leaderboard from './components/Leaderboard';
-import { GameState, ScoreEntry } from './types';
+import Header from './components/Header.tsx';
+import Quiz from './components/Quiz.tsx';
+import FunFacts from './components/FunFacts.tsx';
+import Leaderboard from './components/Leaderboard.tsx';
+import { GameState, ScoreEntry } from './types.ts';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<GameState>(GameState.HOME);
