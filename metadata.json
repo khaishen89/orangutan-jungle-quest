@@ -1,0 +1,7 @@
+{
+  "name": "OrangUtan Jungle Quest",
+  "description": "A fun and educational game for kids to learn about orangutans through quizzes and interactive facts, featuring leaderboards and customizable branding.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
