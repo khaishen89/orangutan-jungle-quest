@@ -5,58 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrangUtan Jungle Quest</title>
-    <!-- Tailwind CSS for layout -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for that kid-friendly look -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-    <!-- Babel allows the browser to run TSX/JSX directly inside the HTML -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <script>
-        // Setup global environment for the API
-        window.process = { env: { API_KEY: '' } };
-    </script>
-
+    <script>window.process = { env: { API_KEY: '' } };</script>
     <style>
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background-color: #fffbeb;
-            margin: 0;
-            overflow-x: hidden;
-        }
-        .jungle-bg {
-            background: linear-gradient(180deg, #dcfce7 0%, #fef3c7 100%);
-        }
-        @keyframes wobble {
-            0%, 100% { transform: rotate(-2deg); }
-            50% { transform: rotate(2deg); }
-        }
-        .wobble {
-            animation: wobble 3s infinite ease-in-out;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        .float {
-            animation: float 4s infinite ease-in-out;
-        }
-        .sticker-pop {
-            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        @keyframes pop {
-            0% { transform: scale(0.5); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.8s ease-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: 'Fredoka', sans-serif; background-color: #f0fdf4; margin: 0; }
+        .jungle-gradient { background: linear-gradient(180deg, #dcfce7 0%, #fef3c7 100%); }
+        .wobble { animation: wobble 3s infinite ease-in-out; }
+        @keyframes wobble { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+        .float { animation: float 4s infinite ease-in-out; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .bounce-btn { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .bounce-btn:hover { transform: scale(1.05) translateY(-5px); }
+        .bounce-btn:active { transform: scale(0.95) translateY(2px); }
+        .sticker-pop { animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     </style>
-
     <script type="importmap">
 {
   "imports": {
@@ -69,7 +34,7 @@
 }
 </script>
 </head>
-<body class="jungle-bg">
+<body class="jungle-gradient min-h-screen">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
@@ -77,186 +42,198 @@
         import ReactDOM from 'react-dom/client';
         import { GoogleGenAI, Type } from "@google/genai";
 
-        // --- SERVICE LOGIC ---
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
-        const generateQuiz = async () => {
-          try {
-            const response = await ai.models.generateContent({
-              model: "gemini-3-flash-preview",
-              contents: "Generate 5 ultra-simple quiz questions for toddlers about orangutans. Use emojis.",
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                  type: "ARRAY",
-                  items: {
-                    type: "OBJECT",
-                    properties: {
-                      question: { type: "STRING" },
-                      options: { type: "ARRAY", items: { type: "STRING" } },
-                      correctAnswer: { type: "STRING" },
-                      explanation: { type: "STRING" }
-                    },
-                    required: ["question", "options", "correctAnswer", "explanation"]
-                  }
-                }
-              }
-            });
-            return JSON.parse(response.text || "[]");
-          } catch (e) { 
-            console.error(e); 
-            return [
-                { question: "What color is an orangutan?", options: ["Red 🍎", "Blue 🧊", "Green 🥦"], correctAnswer: "Red 🍎", explanation: "They have beautiful ginger hair!" },
-                { question: "What do they love to eat?", options: ["Pizza 🍕", "Bananas 🍌", "Cookies 🍪"], correctAnswer: "Bananas 🍌", explanation: "Fruit is their favorite snack!" }
-            ];
-          }
+        const fetchQuiz = async () => {
+            try {
+                const res = await ai.models.generateContent({
+                    model: "gemini-3-flash-preview",
+                    contents: "Generate 5 ultra-simple quiz questions for 3-5 year olds about orangutans. Use emojis for options. Short text.",
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    question: { type: Type.STRING },
+                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    correctAnswer: { type: Type.STRING },
+                                    explanation: { type: Type.STRING }
+                                },
+                                required: ["question", "options", "correctAnswer", "explanation"]
+                            }
+                        }
+                    }
+                });
+                return JSON.parse(res.text || "[]");
+            } catch (e) {
+                return [
+                    { question: "What do I love to eat?", options: ["Bananas 🍌", "Pizza 🍕", "Ice Cream 🍦"], correctAnswer: "Bananas 🍌", explanation: "Orangutans love fresh fruit!" },
+                    { question: "What color is my fur?", options: ["Blue 🦋", "Orange 🍊", "Green 🥦"], correctAnswer: "Orange 🍊", explanation: "I have beautiful ginger hair!" }
+                ];
+            }
         };
-
-        // --- COMPONENTS ---
 
         const Header = ({ onNavigate }) => {
-          const [logo, setLogo] = useState(localStorage.getItem('user-brand-logo'));
+            const [logo, setLogo] = useState(null);
+            const [isLocked, setIsLocked] = useState(false);
 
-          const handleUpload = (e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                const b64 = reader.result;
-                setLogo(b64);
-                localStorage.setItem('user-brand-logo', b64);
-              };
-              reader.readAsDataURL(file);
-            }
-          };
+            useEffect(() => {
+                // Check if the owner uploaded 'brand.png' to GitHub
+                fetch('./brand.png', { method: 'HEAD' })
+                    .then(res => {
+                        if (res.ok) {
+                            setLogo('./brand.png');
+                            setIsLocked(true); // If found, hide the upload button for everyone
+                        } else {
+                            const local = localStorage.getItem('temp-brand');
+                            if (local) setLogo(local);
+                        }
+                    })
+                    .catch(() => {
+                        const local = localStorage.getItem('temp-brand');
+                        if (local) setLogo(local);
+                    });
+            }, []);
 
-          return (
-            <header className="bg-white/90 backdrop-blur-md border-b-8 border-orange-100 p-6 sticky top-0 z-50 shadow-sm">
-              <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
-                {logo ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <img src={logo} className="h-24 md:h-32 object-contain wobble" alt="Brand Logo" />
-                    <button onClick={() => { setLogo(null); localStorage.removeItem('user-brand-logo'); }} className="text-xs text-red-400 font-bold hover:underline">Reset Brand 🔄</button>
-                  </div>
-                ) : (
-                  <label className="cursor-pointer bg-white hover:bg-orange-50 border-4 border-dashed border-orange-400 rounded-3xl px-10 py-6 flex flex-col items-center gap-2 transition-all transform hover:scale-105">
-                    <span className="text-4xl">🖼️</span>
-                    <span className="text-orange-600 font-black text-xl text-center">UPLOAD YOUR BRAND IMAGE</span>
-                    <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-                  </label>
-                )}
-                <nav className="flex gap-6">
-                    <button onClick={() => onNavigate('HOME')} className="text-orange-600 font-black text-xl hover:scale-110">🏠 Home</button>
-                    <button onClick={() => onNavigate('LEADERBOARD')} className="text-orange-600 font-black text-xl hover:scale-110">🏆 Scores</button>
-                </nav>
-              </div>
-            </header>
-          );
-        };
+            const handleUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (re) => {
+                        setLogo(re.target.result);
+                        localStorage.setItem('temp-brand', re.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
 
-        const Quiz = ({ onComplete }) => {
-          const [questions, setQuestions] = useState([]);
-          const [idx, setIdx] = useState(0);
-          const [score, setScore] = useState(0);
-          const [loading, setLoading] = useState(true);
-          const [ans, setAns] = useState(null);
-
-          useEffect(() => {
-            generateQuiz().then(data => { setQuestions(data); setLoading(false); });
-          }, []);
-
-          if (loading) return <div className="text-center py-20 text-3xl font-black text-orange-500 animate-bounce">🦧 Loading Jungle Fun...</div>;
-
-          const q = questions[idx];
-          return (
-            <div className="max-w-2xl mx-auto bg-white rounded-[3rem] p-10 shadow-2xl border-b-[12px] border-orange-50">
-                <h2 className="text-4xl font-black text-center mb-10 text-gray-800">{q.question}</h2>
-                <div className="grid gap-4">
-                    {q.options.map(o => (
-                        <button 
-                            key={o}
-                            disabled={!!ans}
-                            onClick={() => { setAns(o); if(o === q.correctAnswer) setScore(s => s + 10); }}
-                            className={`p-6 text-3xl font-black rounded-3xl border-b-8 transition-all ${
-                                ans ? (o === q.correctAnswer ? 'bg-green-400 border-green-600 text-white' : (o === ans ? 'bg-red-400 border-red-600 text-white' : 'bg-gray-100 text-gray-300 border-gray-200')) : 'bg-white border-orange-200 hover:bg-orange-50 active:translate-y-2'
-                            }`}
-                        >
-                            {o}
-                        </button>
-                    ))}
-                </div>
-                {ans && (
-                    <div className="mt-10 text-center sticker-pop">
-                        <p className="text-xl font-black text-orange-700 mb-6">✨ {q.explanation}</p>
-                        <button 
-                            onClick={() => { if(idx < questions.length - 1) { setIdx(idx+1); setAns(null); } else onComplete(score); }}
-                            className="bg-orange-500 text-white text-3xl font-black px-12 py-4 rounded-full shadow-lg"
-                        >
-                            Next! 👉
-                        </button>
+            return (
+                <header className="bg-white/90 backdrop-blur-md border-b-8 border-orange-100 p-6 sticky top-0 z-50">
+                    <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
+                        {logo ? (
+                            <img src={logo} className="h-24 md:h-32 object-contain wobble drop-shadow-md" alt="OrangUtan Brand" />
+                        ) : (
+                            <label className="cursor-pointer bg-white border-4 border-dashed border-orange-300 rounded-3xl px-12 py-6 flex flex-col items-center gap-2 hover:bg-orange-50 transition-colors">
+                                <span className="text-4xl">🖼️</span>
+                                <span className="text-orange-600 font-bold">UPLOAD BRAND LOGO</span>
+                                <input type="file" className="hidden" accept="image/*" onChange={handleUpload} />
+                            </label>
+                        )}
+                        {!isLocked && logo && (
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">Owner Tip: Put "brand.png" in your GitHub repo to lock this for all visitors!</p>
+                        )}
+                        <nav className="flex gap-4">
+                            <button onClick={() => onNavigate('HOME')} className="bg-orange-500 text-white px-8 py-3 rounded-2xl font-bold shadow-[0_5px_0_#c2410c] bounce-btn">HOME 🏠</button>
+                            <button onClick={() => onNavigate('SCORES')} className="bg-green-500 text-white px-8 py-3 rounded-2xl font-bold shadow-[0_5px_0_#15803d] bounce-btn">SCORES 🏆</button>
+                        </nav>
                     </div>
-                )}
-            </div>
-          );
+                </header>
+            );
         };
 
-        const Leaderboard = () => {
-            const scores = JSON.parse(localStorage.getItem('game-leaderboard') || '[]')
+        const Quiz = ({ onEnd }) => {
+            const [qs, setQs] = useState([]);
+            const [idx, setIdx] = useState(0);
+            const [score, setScore] = useState(0);
+            const [loading, setLoading] = useState(true);
+            const [choice, setChoice] = useState(null);
+
+            useEffect(() => { fetchQuiz().then(d => { setQs(d); setLoading(false); }); }, []);
+
+            if (loading) return <div className="text-center py-20 text-4xl font-bold text-orange-500 animate-bounce">🦧 Jungle loading...</div>;
+
+            const q = qs[idx];
+            return (
+                <div className="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-[3rem] shadow-2xl border-b-[12px] border-orange-50">
+                    <h2 className="text-3xl md:text-5xl font-bold text-gray-800 text-center mb-10">{q.question}</h2>
+                    <div className="grid gap-4">
+                        {q.options.map(o => (
+                            <button 
+                                key={o} 
+                                disabled={!!choice}
+                                onClick={() => { setChoice(o); if(o === q.correctAnswer) setScore(s => s + 10); }}
+                                className={`p-6 text-3xl font-bold rounded-3xl border-b-8 transition-all ${
+                                    choice ? (o === q.correctAnswer ? 'bg-green-400 border-green-600 text-white' : (o === choice ? 'bg-red-400 border-red-600 text-white' : 'bg-gray-100 border-gray-200 text-gray-300')) 
+                                    : 'bg-white border-orange-100 hover:bg-orange-50 active:translate-y-2'
+                                }`}
+                            >
+                                {o}
+                            </button>
+                        ))}
+                    </div>
+                    {choice && (
+                        <div className="mt-10 text-center sticker-pop">
+                            <p className="text-xl font-bold text-orange-700 mb-6 italic">✨ {q.explanation}</p>
+                            <button 
+                                onClick={() => { if(idx < qs.length - 1) { setIdx(idx+1); setChoice(null); } else onEnd(score); }}
+                                className="bg-orange-500 text-white text-3xl font-bold px-12 py-4 rounded-full shadow-lg border-b-4 border-orange-700"
+                            >
+                                NEXT! 👉
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const Scores = () => {
+            const list = JSON.parse(localStorage.getItem('orang-scores') || '[]')
                 .sort((a,b) => b.score - a.score).slice(0, 10);
             return (
-                <div className="max-w-2xl mx-auto bg-white rounded-[3rem] p-10 shadow-2xl overflow-hidden">
-                    <h2 className="text-4xl font-black text-center text-green-600 mb-8">🏆 Hall of Fame</h2>
+                <div className="max-w-xl mx-auto bg-white p-8 rounded-[3rem] shadow-2xl border-b-[12px] border-green-50">
+                    <h2 className="text-5xl font-bold text-green-600 text-center mb-10">🏆 Hall of Fame</h2>
                     <div className="space-y-4">
-                        {scores.length > 0 ? scores.map((s, i) => (
-                            <div key={i} className="flex justify-between p-4 bg-orange-50 rounded-2xl border-2 border-orange-100 items-center">
-                                <span className="text-2xl font-black text-orange-600">#{i+1} {s.name}</span>
-                                <span className="text-3xl font-black text-green-600">{s.score}</span>
+                        {list.length ? list.map((s, i) => (
+                            <div key={i} className={`flex justify-between p-5 rounded-2xl border-4 ${i === 0 ? 'bg-yellow-50 border-yellow-200 scale-105' : 'bg-orange-50 border-orange-100'}`}>
+                                <span className="text-2xl font-bold text-orange-600">{i === 0 ? '🥇' : `#${i+1}`} {s.name}</span>
+                                <span className="text-3xl font-bold text-green-600">{s.score}</span>
                             </div>
-                        )) : <p className="text-center text-gray-400">No explorers yet! Play to be the first!</p>}
+                        )) : <p className="text-center text-gray-300 font-bold italic">No explorers yet! Start playing!</p>}
                     </div>
                 </div>
             );
         };
 
         const App = () => {
-          const [view, setView] = useState('HOME');
-          const [score, setScore] = useState(0);
-          const [name, setName] = useState('');
+            const [view, setView] = useState('HOME');
+            const [score, setScore] = useState(0);
+            const [name, setName] = useState('');
 
-          const saveScore = () => {
-            const entry = { name, score, date: new Date().toLocaleDateString() };
-            const existing = JSON.parse(localStorage.getItem('game-leaderboard') || '[]');
-            localStorage.setItem('game-leaderboard', JSON.stringify([...existing, entry]));
-            setView('LEADERBOARD');
-          };
+            const save = () => {
+                const prev = JSON.parse(localStorage.getItem('orang-scores') || '[]');
+                localStorage.setItem('orang-scores', JSON.stringify([...prev, {name, score}]));
+                setView('SCORES');
+            }
 
-          return (
-            <div className="min-h-screen flex flex-col">
-              <Header onNavigate={setView} />
-              <main className="flex-grow container mx-auto py-12 px-4 max-w-5xl">
-                {view === 'HOME' && (
-                  <div className="text-center animate-fade-in flex flex-col items-center">
-                    <img src="https://picsum.photos/seed/baby-orangutan/800/600" className="w-full max-w-xl rounded-[4rem] shadow-2xl border-[16px] border-white wobble mb-12" />
-                    <h1 className="text-6xl md:text-8xl font-black text-orange-600 mb-8 drop-shadow-md">Hi Friend! 🦧</h1>
-                    <button onClick={() => setView('QUIZ')} className="bg-orange-500 text-white text-5xl font-black py-10 px-16 rounded-[4rem] shadow-[0_15px_0_rgb(194,65,12)] hover:-translate-y-2 active:translate-y-2 active:shadow-none transition-all">
-                        PLAY! 🎮
-                    </button>
-                  </div>
-                )}
-                {view === 'QUIZ' && <Quiz onComplete={(s) => { setScore(s); setView('GAME_OVER'); }} />}
-                {view === 'LEADERBOARD' && <Leaderboard />}
-                {view === 'GAME_OVER' && (
-                  <div className="text-center max-w-xl mx-auto bg-white p-12 rounded-[4rem] shadow-2xl">
-                    <h2 className="text-4xl font-black text-orange-600 mb-4">YOU DID IT! 🎉</h2>
-                    <div className="text-9xl font-black text-green-500 mb-8">{score}</div>
-                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Your Name!" className="w-full p-6 border-4 border-orange-200 rounded-3xl text-3xl font-black text-center mb-8 focus:outline-none focus:border-orange-500" />
-                    <button onClick={saveScore} disabled={!name} className="w-full bg-green-500 text-white text-4xl font-black py-8 rounded-[3rem] shadow-[0_12px_0_rgb(21,128,61)] disabled:opacity-50">Save My Score! 💎</button>
-                  </div>
-                )}
-              </main>
-              <footer className="py-12 text-center text-orange-900/40 font-black text-xl">🌴 🐒 🍌 OrangUtan Brand Kids - Playing Together</footer>
-            </div>
-          );
+            return (
+                <div className="pb-20">
+                    <Header onNavigate={setView} />
+                    <main className="container mx-auto mt-12 px-4">
+                        {view === 'HOME' && (
+                            <div className="text-center">
+                                <img src="https://picsum.photos/seed/orang/800/600" className="w-full max-w-xl mx-auto rounded-[3rem] shadow-2xl border-[12px] border-white wobble mb-10" />
+                                <h1 className="text-7xl font-bold text-orange-600 mb-10 drop-shadow-md">Hello Friend! 🦧</h1>
+                                <button onClick={() => setView('QUIZ')} className="bg-orange-500 text-white text-5xl font-bold py-8 px-16 rounded-[3rem] shadow-[0_12px_0_#c2410c] bounce-btn">PLAY! 🎮</button>
+                            </div>
+                        )}
+                        {view === 'QUIZ' && <Quiz onEnd={(s) => { setScore(s); setView('OVER'); }} />}
+                        {view === 'SCORES' && <Scores />}
+                        {view === 'OVER' && (
+                            <div className="max-w-md mx-auto bg-white p-12 rounded-[4rem] shadow-2xl text-center border-b-[16px] border-orange-50">
+                                <h2 className="text-4xl font-bold text-orange-600 mb-4">YOU DID IT! 🎉</h2>
+                                <div className="text-9xl font-bold text-green-500 mb-10">{score}</div>
+                                <input value={name} onChange={e => setName(e.target.value)} placeholder="Type your name!" className="w-full p-5 border-4 border-orange-200 rounded-3xl text-2xl font-bold text-center mb-8 focus:outline-none focus:border-orange-500" />
+                                <button onClick={save} disabled={!name} className="w-full bg-green-500 text-white text-3xl font-bold py-6 rounded-[2.5rem] shadow-[0_10px_0_#15803d] bounce-btn disabled:opacity-50">SAVE SCORE! 💎</button>
+                            </div>
+                        )}
+                    </main>
+                    <div className="fixed bottom-0 w-full flex justify-center py-6 pointer-events-none opacity-20">
+                        <span className="text-6xl float">🌿</span><span className="text-6xl float" style={{animationDelay:'1s'}}>🍌</span><span className="text-6xl float">🌴</span>
+                    </div>
+                </div>
+            );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
