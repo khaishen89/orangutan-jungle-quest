@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { QuizQuestion } from '../types';
-import { generateQuiz } from '../services/geminiService';
+import { QuizQuestion } from '../types.ts';
+import { generateQuiz } from '../services/geminiService.ts';
 
 interface QuizProps {
   onComplete: (score: number) => void;
