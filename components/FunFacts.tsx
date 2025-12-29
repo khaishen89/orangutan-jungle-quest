@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { FunFact } from '../types';
-import { generateFunFacts } from '../services/geminiService';
+import { FunFact } from '../types.ts';
+import { generateFunFacts } from '../services/geminiService.ts';
 
 const FunFacts: React.FC = () => {
   const [facts, setFacts] = useState<FunFact[]>([]);
