@@ -5,14 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrangUtan Jungle Quest</title>
+    <!-- Tailwind CSS for layout -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for that kid-friendly look -->
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-    <!-- Babel allows the browser to run TSX/JSX directly from the file -->
+    <!-- Babel allows the browser to run TSX/JSX directly inside the HTML -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
     <script>
-        // Prevents "process is not defined" errors on static sites like GitHub
+        // Setup global environment for the API
         window.process = { env: { API_KEY: '' } };
     </script>
+
     <style>
         body {
             font-family: 'Fredoka', sans-serif;
@@ -52,12 +56,13 @@
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
-<script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
@@ -66,7 +71,196 @@
 </head>
 <body class="jungle-bg">
     <div id="root"></div>
-    <!-- Using text/babel so Babel Standalone transforms this on the fly -->
-    <script type="text/babel" data-type="module" src="index.tsx"></script>
+
+    <script type="text/babel" data-type="module">
+        import React, { useState, useEffect } from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { GoogleGenAI, Type } from "@google/genai";
+
+        // --- SERVICE LOGIC ---
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+
+        const generateQuiz = async () => {
+          try {
+            const response = await ai.models.generateContent({
+              model: "gemini-3-flash-preview",
+              contents: "Generate 5 ultra-simple quiz questions for toddlers about orangutans. Use emojis.",
+              config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      question: { type: "STRING" },
+                      options: { type: "ARRAY", items: { type: "STRING" } },
+                      correctAnswer: { type: "STRING" },
+                      explanation: { type: "STRING" }
+                    },
+                    required: ["question", "options", "correctAnswer", "explanation"]
+                  }
+                }
+              }
+            });
+            return JSON.parse(response.text || "[]");
+          } catch (e) { 
+            console.error(e); 
+            return [
+                { question: "What color is an orangutan?", options: ["Red 🍎", "Blue 🧊", "Green 🥦"], correctAnswer: "Red 🍎", explanation: "They have beautiful ginger hair!" },
+                { question: "What do they love to eat?", options: ["Pizza 🍕", "Bananas 🍌", "Cookies 🍪"], correctAnswer: "Bananas 🍌", explanation: "Fruit is their favorite snack!" }
+            ];
+          }
+        };
+
+        // --- COMPONENTS ---
+
+        const Header = ({ onNavigate }) => {
+          const [logo, setLogo] = useState(localStorage.getItem('user-brand-logo'));
+
+          const handleUpload = (e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const b64 = reader.result;
+                setLogo(b64);
+                localStorage.setItem('user-brand-logo', b64);
+              };
+              reader.readAsDataURL(file);
+            }
+          };
+
+          return (
+            <header className="bg-white/90 backdrop-blur-md border-b-8 border-orange-100 p-6 sticky top-0 z-50 shadow-sm">
+              <div className="max-w-7xl mx-auto flex flex-col items-center gap-6">
+                {logo ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={logo} className="h-24 md:h-32 object-contain wobble" alt="Brand Logo" />
+                    <button onClick={() => { setLogo(null); localStorage.removeItem('user-brand-logo'); }} className="text-xs text-red-400 font-bold hover:underline">Reset Brand 🔄</button>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer bg-white hover:bg-orange-50 border-4 border-dashed border-orange-400 rounded-3xl px-10 py-6 flex flex-col items-center gap-2 transition-all transform hover:scale-105">
+                    <span className="text-4xl">🖼️</span>
+                    <span className="text-orange-600 font-black text-xl text-center">UPLOAD YOUR BRAND IMAGE</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+                  </label>
+                )}
+                <nav className="flex gap-6">
+                    <button onClick={() => onNavigate('HOME')} className="text-orange-600 font-black text-xl hover:scale-110">🏠 Home</button>
+                    <button onClick={() => onNavigate('LEADERBOARD')} className="text-orange-600 font-black text-xl hover:scale-110">🏆 Scores</button>
+                </nav>
+              </div>
+            </header>
+          );
+        };
+
+        const Quiz = ({ onComplete }) => {
+          const [questions, setQuestions] = useState([]);
+          const [idx, setIdx] = useState(0);
+          const [score, setScore] = useState(0);
+          const [loading, setLoading] = useState(true);
+          const [ans, setAns] = useState(null);
+
+          useEffect(() => {
+            generateQuiz().then(data => { setQuestions(data); setLoading(false); });
+          }, []);
+
+          if (loading) return <div className="text-center py-20 text-3xl font-black text-orange-500 animate-bounce">🦧 Loading Jungle Fun...</div>;
+
+          const q = questions[idx];
+          return (
+            <div className="max-w-2xl mx-auto bg-white rounded-[3rem] p-10 shadow-2xl border-b-[12px] border-orange-50">
+                <h2 className="text-4xl font-black text-center mb-10 text-gray-800">{q.question}</h2>
+                <div className="grid gap-4">
+                    {q.options.map(o => (
+                        <button 
+                            key={o}
+                            disabled={!!ans}
+                            onClick={() => { setAns(o); if(o === q.correctAnswer) setScore(s => s + 10); }}
+                            className={`p-6 text-3xl font-black rounded-3xl border-b-8 transition-all ${
+                                ans ? (o === q.correctAnswer ? 'bg-green-400 border-green-600 text-white' : (o === ans ? 'bg-red-400 border-red-600 text-white' : 'bg-gray-100 text-gray-300 border-gray-200')) : 'bg-white border-orange-200 hover:bg-orange-50 active:translate-y-2'
+                            }`}
+                        >
+                            {o}
+                        </button>
+                    ))}
+                </div>
+                {ans && (
+                    <div className="mt-10 text-center sticker-pop">
+                        <p className="text-xl font-black text-orange-700 mb-6">✨ {q.explanation}</p>
+                        <button 
+                            onClick={() => { if(idx < questions.length - 1) { setIdx(idx+1); setAns(null); } else onComplete(score); }}
+                            className="bg-orange-500 text-white text-3xl font-black px-12 py-4 rounded-full shadow-lg"
+                        >
+                            Next! 👉
+                        </button>
+                    </div>
+                )}
+            </div>
+          );
+        };
+
+        const Leaderboard = () => {
+            const scores = JSON.parse(localStorage.getItem('game-leaderboard') || '[]')
+                .sort((a,b) => b.score - a.score).slice(0, 10);
+            return (
+                <div className="max-w-2xl mx-auto bg-white rounded-[3rem] p-10 shadow-2xl overflow-hidden">
+                    <h2 className="text-4xl font-black text-center text-green-600 mb-8">🏆 Hall of Fame</h2>
+                    <div className="space-y-4">
+                        {scores.length > 0 ? scores.map((s, i) => (
+                            <div key={i} className="flex justify-between p-4 bg-orange-50 rounded-2xl border-2 border-orange-100 items-center">
+                                <span className="text-2xl font-black text-orange-600">#{i+1} {s.name}</span>
+                                <span className="text-3xl font-black text-green-600">{s.score}</span>
+                            </div>
+                        )) : <p className="text-center text-gray-400">No explorers yet! Play to be the first!</p>}
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+          const [view, setView] = useState('HOME');
+          const [score, setScore] = useState(0);
+          const [name, setName] = useState('');
+
+          const saveScore = () => {
+            const entry = { name, score, date: new Date().toLocaleDateString() };
+            const existing = JSON.parse(localStorage.getItem('game-leaderboard') || '[]');
+            localStorage.setItem('game-leaderboard', JSON.stringify([...existing, entry]));
+            setView('LEADERBOARD');
+          };
+
+          return (
+            <div className="min-h-screen flex flex-col">
+              <Header onNavigate={setView} />
+              <main className="flex-grow container mx-auto py-12 px-4 max-w-5xl">
+                {view === 'HOME' && (
+                  <div className="text-center animate-fade-in flex flex-col items-center">
+                    <img src="https://picsum.photos/seed/baby-orangutan/800/600" className="w-full max-w-xl rounded-[4rem] shadow-2xl border-[16px] border-white wobble mb-12" />
+                    <h1 className="text-6xl md:text-8xl font-black text-orange-600 mb-8 drop-shadow-md">Hi Friend! 🦧</h1>
+                    <button onClick={() => setView('QUIZ')} className="bg-orange-500 text-white text-5xl font-black py-10 px-16 rounded-[4rem] shadow-[0_15px_0_rgb(194,65,12)] hover:-translate-y-2 active:translate-y-2 active:shadow-none transition-all">
+                        PLAY! 🎮
+                    </button>
+                  </div>
+                )}
+                {view === 'QUIZ' && <Quiz onComplete={(s) => { setScore(s); setView('GAME_OVER'); }} />}
+                {view === 'LEADERBOARD' && <Leaderboard />}
+                {view === 'GAME_OVER' && (
+                  <div className="text-center max-w-xl mx-auto bg-white p-12 rounded-[4rem] shadow-2xl">
+                    <h2 className="text-4xl font-black text-orange-600 mb-4">YOU DID IT! 🎉</h2>
+                    <div className="text-9xl font-black text-green-500 mb-8">{score}</div>
+                    <input value={name} onChange={e => setName(e.target.value)} placeholder="Your Name!" className="w-full p-6 border-4 border-orange-200 rounded-3xl text-3xl font-black text-center mb-8 focus:outline-none focus:border-orange-500" />
+                    <button onClick={saveScore} disabled={!name} className="w-full bg-green-500 text-white text-4xl font-black py-8 rounded-[3rem] shadow-[0_12px_0_rgb(21,128,61)] disabled:opacity-50">Save My Score! 💎</button>
+                  </div>
+                )}
+              </main>
+              <footer className="py-12 text-center text-orange-900/40 font-black text-xl">🌴 🐒 🍌 OrangUtan Brand Kids - Playing Together</footer>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
